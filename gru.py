@@ -11,13 +11,13 @@ from load_data import get_batch
 
 ## 超参数
 DIMENSION = 66
-LR = 0.01
+LR = 1e-3
 
 
 class RNN(nn.Module):
 	def __init__(self):
 		super(RNN,self).__init__()
-		self.rnn = nn.RNN(
+		self.rnn = nn.GRU(
 			input_size  = DIMENSION*2,
 			hidden_size = 256,
 			num_layers  = 2,
