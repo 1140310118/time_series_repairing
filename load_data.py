@@ -35,18 +35,24 @@ def make_data(data,time_step,batch_size,dimension,missing_rate=0.2):
 	
 	return X,Y,masks
 
-def make_dataloader(X,Y,masks,batch_size):
+def make_dataloader(X,Y,masks,batch_size,shuffle=True):
+	"""
+	需要画图的时候，可以这样调用此函数
+		make_dataloader(X,Y,masks,batch_size=1,shuffle=False)
+	"""
 	X,Y,masks = torch.FloatTensor(X),torch.FloatTensor(Y),torch.FloatTensor(masks)
 	torch_dataset = Data.TensorDataset(X,Y,masks)
 	dataloader = Data.DataLoader(
 		dataset=torch_dataset,
 		batch_size=batch_size,
-		shuffle=True,
+		shuffle=shuffle,
 		num_workers=2,
 	)
 	return dataloader
 
-def get_batch(np_data,time_step,batch_size,dimension,missing_rate):
+
+
+def get_batch(np_data,time_step,batch_size,dimension,missing_rate,shuffle=True):
 	"""
 	返回一个dataloader
 	for b_x,b_y in dataloader:
@@ -55,7 +61,7 @@ def get_batch(np_data,time_step,batch_size,dimension,missing_rate):
 	"""
 	num = np_data.shape[0]
 	X,Y,masks = make_data(np_data,time_step,int(num/time_step),dimension,missing_rate)
-	dataloader = make_dataloader(X,Y,masks,batch_size)
+	dataloader = make_dataloader(X,Y,masks,batch_size,shuffle)
 	return dataloader
 
 
