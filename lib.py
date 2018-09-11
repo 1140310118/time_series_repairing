@@ -25,7 +25,7 @@ class MSELoss_with_mask(nn.Module):
 		mse  = nn.MSELoss()
 		loss1 = mse(y_predict, y_target)
 		loss2 = mse(y_predict*(1-mask),
-					y_target *(1-mask)) *zero_num/(zero_num+one_num)
+					y_target *(1-mask)) * (zero_num+one_num)/zero_num
 		w1,w2 = self.weight
 		loss = (loss1*w1+loss2*w2)/(w1+w2)
 		return loss

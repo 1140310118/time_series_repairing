@@ -5,7 +5,8 @@ import numpy as np
 import threading
 
 
-def make_data(data,time_step,batch_size,dimension,missing_rate=0.2):
+def make_data(data,time_step,batch_size,
+		dimension,missing_rate=0.2,has_delta=False):
 	"""
 	将时间序列进行缺失处理，返回
 	  - X 缺失的时间序列及缺失的位置
@@ -27,21 +28,41 @@ def make_data(data,time_step,batch_size,dimension,missing_rate=0.2):
 		masks.append(mask)	
 		X.append(x)
 
-	masks = np.array(masks)
-	masks = np.swapaxes(masks,0,1) # 交换前两个维度，使得矩阵的形状变为 (batch_size,time_step,dimension) 
-	X = np.array(X)
-	X = np.swapaxes(X,0,1) # 同上
-	# X = np.concatenate((X,masks),axis=2)
+	if has_delta:
+		deltas = []
+		for i in range(time_step):
+			mask = masks[i]
+			if not deltas:
+				delta = np.ones_like(mask)
+			else:
+				delta = mask + (1-mask)*(np.ones_like(mask)+deltas[-1])
+			deltas.append(delta)
+		deltas = np.array(deltas)
+		deltas = np.swapaxes(deltas,0,1)
+	else:
+		deltas = None
 	
-	return X,Y,masks
+	masks = np.array(masks)
+	X = np.array(X)
+	masks = np.swapaxes(masks,0,1) # 交换前两个维度，使得矩阵的形状变为 (batch_size,time_step,dimension) 
+	X = np.swapaxes(X,0,1) # 同上
 
-def make_dataloader(X,Y,masks,batch_size,shuffle=True):
+	return X,Y,masks,deltas
+
+
+def make_dataloader(X,Y,masks,batch_size,delta,shuffle=True):
 	"""
 	需要画图的时候，可以这样调用此函数
 		make_dataloader(X,Y,masks,batch_size=1,shuffle=False)
 	"""
 	X,Y,masks = torch.FloatTensor(X),torch.FloatTensor(Y),torch.FloatTensor(masks)
-	torch_dataset = Data.TensorDataset(X,Y,masks)
+	
+	if delta is not None: # 用于计算衰减系数
+		delta = torch.FloatTensor(delta)
+		torch_dataset = Data.TensorDataset(X,Y,masks,delta)
+	else:
+		torch_dataset = Data.TensorDataset(X,Y,masks)
+	
 	dataloader = Data.DataLoader(
 		dataset=torch_dataset,
 		batch_size=batch_size,
@@ -51,17 +72,17 @@ def make_dataloader(X,Y,masks,batch_size,shuffle=True):
 	return dataloader
 
 
-
-def get_batch(np_data,time_step,batch_size,dimension,missing_rate,shuffle=True):
+def get_batch(np_data,time_step,batch_size,dimension,
+		missing_rate,has_delta=False,shuffle=True):
 	"""
 	返回一个dataloader
-	for b_x,b_y in dataloader:
-		b_x (batch_size,time_step,dimension*2)
-		b_y (batch_size,time_step,dimension)
+	for b_x,b_y,mask,delta in dataloader:
+		b_x,b_y,mask,delta (batch_size,time_step,dimension)
 	"""
 	num = np_data.shape[0]
-	X,Y,masks = make_data(np_data,time_step,int(num/time_step),dimension,missing_rate)
-	dataloader = make_dataloader(X,Y,masks,batch_size,shuffle)
+	X,Y,masks,delta = make_data(np_data,time_step,
+		int(num/time_step),dimension,missing_rate,has_delta=has_delta)
+	dataloader = make_dataloader(X,Y,masks,batch_size,delta,shuffle)
 	return dataloader
 
 
