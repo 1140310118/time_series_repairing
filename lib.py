@@ -30,13 +30,11 @@ class MSELoss_with_mask(nn.Module):
 		loss = (loss1*w1+loss2*w2)/(w1+w2)
 		return loss
 
-		# 整个(predict-true)*r1 + (predict-true)*mask*r2 = predict*r1+缺失部分*r2 - true 
-		# 相当于 (y_predict*w1 + y_true*(1-w1))*mask + y_predict*(1-mask)
 
 class MAE(nn.Module):
 	"""
 	MAE: Mean Absolute Error,平均绝对损失
-	仅考虑缺失部分的MAE
+	仅考虑缺失部分的MAE 
 	"""
 	def __init__(self):
 		super(MAE,self).__init__()

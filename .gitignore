@@ -1,2 +1,3 @@
 ts_data/data_train.npy
+data/*
 *.pyc
