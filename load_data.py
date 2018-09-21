@@ -79,7 +79,8 @@ def make_data(data,time_step,dimension,
 		_len = num*time_step # 长度
 		# (-1,time_step,dimension)
 		X = copy.deepcopy(data[i:_len+i]).reshape(-1,time_step,dimension) 
-		Y = copy.deepcopy(data[i+1:_len+i+1]).reshape(-1,time_step,dimension)[:,-2:-1]
+		# Y = copy.deepcopy(data[i+1:_len+i+1]).reshape(-1,time_step,dimension)[:,-2:-1]
+		Y = copy.deepcopy(X)
 
 		X_missing,Mask,Delta = missing(X,time_step)
 
@@ -89,7 +90,8 @@ def make_data(data,time_step,dimension,
 		Deltas.append(Delta)
 
 	Xs = np.array(Xs).reshape(-1,time_step,dimension)
-	Ys = np.array(Ys).reshape(-1,1,dimension)
+	# Ys = np.array(Ys).reshape(-1,1,dimension)
+	Ys = np.array(Ys).reshape(-1,time_step,dimension)
 	Masks  = np.array(Masks, dtype=np.uint8).reshape(-1,time_step,dimension)
 	Deltas = np.array(Deltas,dtype=np.uint8).reshape(-1,time_step,dimension)
 
@@ -145,13 +147,13 @@ if __name__ == "__main__":
 	TIME_STEP  = 10
 	BATCH_SIZE = 100
 	DIMSENSION  = 66
-	missing_rate = 0.2
+	missing_rate = 0.8
 	
-	train_dataloader = get_batch(data_train_dir,5000,
+	train_dataloader = get_batch(data_train_dir,10000,
 		TIME_STEP,BATCH_SIZE,DIMSENSION,missing_rate,
 		tmp_dir="data/tmp/train/",saved=False)
 	
-	valid_dataloader = get_batch(data_valid_dir,1000,
+	valid_dataloader = get_batch(data_valid_dir,5000,
 		TIME_STEP,BATCH_SIZE,DIMSENSION,missing_rate,
 		tmp_dir='data/tmp/valid/',saved=False)
 	

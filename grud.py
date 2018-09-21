@@ -19,9 +19,9 @@ class GRUDCell(nn.Module):
 		self.input_size  = input_size
 		self.hidden_size = hidden_size
 
-		self.zl = nn.Linear(input_size+hidden_size,hidden_size)
-		self.rl = nn.Linear(input_size+hidden_size,hidden_size)
-		self.hl = nn.Linear(input_size+hidden_size,hidden_size)
+		self.zl = nn.Linear(input_size*2+hidden_size,hidden_size)
+		self.rl = nn.Linear(input_size*2+hidden_size,hidden_size)
+		self.hl = nn.Linear(input_size*2+hidden_size,hidden_size)
 		
 		self.gamma_xl = nn.Linear(input_size,input_size)
 		self.gamma_hl = nn.Linear(input_size,hidden_size)
@@ -34,16 +34,16 @@ class GRUDCell(nn.Module):
 		delta_h = torch.exp(-torch.relu(self.gamma_hl(delta)))
 		delta_x = torch.exp(-torch.relu(self.gamma_xl(delta)))
 		
-		# x = mask*x + (1-mask)*(delta_x*x +(1-delta_x)*x_mean) # 缺失值的初步估计
-		# h = delta_h*h # h的旧值的估计值
+		x = mask*x + (1-mask)*(delta_x*x +(1-delta_x)*x_mean) # 缺失值的初步估计
+		h = delta_h*h # h的旧值的估计值
 
-		# combined = torch.cat((x,h,mask),dim=1)
-		combined = torch.cat((x,h),dim=1)
+		combined = torch.cat((x,h,mask),dim=1)
+		# combined = torch.cat((x,h),dim=1)
 		r = torch.sigmoid(self.rl(combined))
 		z = torch.sigmoid(self.zl(combined))
 
-		# combined2 = torch.cat((x,r*h,mask),dim=1)
-		combined2 = torch.cat((x,r*h),dim=1)
+		combined2 = torch.cat((x,r*h,mask),dim=1)
+		# combined2 = torch.cat((x,r*h),dim=1)
 		h_ = torch.tanh(self.hl(combined2))
 
 		h = (1-z)*h + z*h_
@@ -63,9 +63,6 @@ class GRUD(nn.Module):
 		self.hidden_size = hidden_size
 		self.time_step   = time_step
 		self.grud = GRUDCell(dimension,hidden_size)
-		# self.grud2 = GRUDCell_t(dimension,hidden_size,time_step)
-		# self.grud3 = GRUDCell_t(input_size,hidden_size,time_step)
-		# self.grud4 = GRUDCell_t(input_size,hidden_size,time_step)
 
 		self.out = nn.Sequential(
 			nn.Linear(hidden_size,dimension))
@@ -75,12 +72,9 @@ class GRUD(nn.Module):
 		X 的形状为 (batch_size,time_step,dimension)
 		x h 的形状为 (batch_size,dimension)
 		"""
-		x_mean = torch.mean(X,dim=1)
+		x_mean = torch.sum(X*Mask,dim=1)/torch.sum(Mask,dim=1)
 		for i in range(self.time_step):
 			h1 = self.grud(X[:,i],Mask[:,i],Delta[:,i],x_mean,h1)
-		# x,h2 = self.grud2(X,Delta,h2)
-		# x,h3 = self.grud3(X,Delta,h3)
-		# x,h4 = self.grud3(X,Delta,h4)
 		
 		outs = self.out(h1).view(-1,1,self.dimension)
 		return outs,None

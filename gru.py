@@ -27,30 +27,29 @@ from lib import MSELoss_with_mask,MAE
 
 
 class GRU(nn.Module):
-	def __init__(self,dimension,hidden_size=256):
+	def __init__(self,input_size,hidden_size,output_size):
 		"""
 		NN、N1
 		"""
-
 		super(GRU,self).__init__()
 		self.gru = nn.GRU(
-			input_size  = dimension,
+			input_size  = input_size,
 			hidden_size = hidden_size,
-			num_layers  = 1,
+			num_layers  = 2,
 			batch_first = True, 
 		)
 		self.out = nn.Sequential(
-			nn.Linear(hidden_size,dimension),
+			nn.Linear(hidden_size,output_size),
 		)	
 
-	def forward(self,x,h_state):
+	def forward(self,x):
 		"""
 		x 的形状为 (batch_size,time_step,dimension)
 		"""
-		r_out,h_state = self.gru(x,h_state)
-		last = r_out[:,-2:-1]
-		out = self.out(last)
-		return out,h_state
+		h_state = None
+		r_out,_ = self.gru(x,h_state)
+		r_out   = self.out(r_out)
+		return r_out
 
 
 def get_loss(model,loader):
@@ -59,13 +58,13 @@ def get_loss(model,loader):
 	"""
 	sum_loss = 0
 	count = 0
-	loss_func = nn.L1Loss() # MSELoss_with_mask((1,0))
+	loss_func = MAE() # MSELoss_with_mask((1,0))
 	for step,(b_x,b_y,mask,delta) in enumerate(loader):
 		b_x  = b_x.cuda()
 		b_y  = b_y.cuda()
 		mask = mask.cuda()
-		prediction,_ = model(b_x,None)
-		loss = loss_func(prediction,b_y)
+		prediction = model(b_x)
+		loss = loss_func(prediction,b_y,mask)
 		sum_loss += float(loss)
 		count += 1
 	maeLoss = sum_loss/count
@@ -91,7 +90,7 @@ def train_Model(model,train_dataloader,valid_dataloader,
 			b_y = b_y.cuda()
 			mask = mask.cuda()
 
-			prediction,_ = model(b_x,None)
+			prediction = model(b_x)
 			loss = loss_func(prediction,b_y,mask)
 
 			optimizer.zero_grad()
@@ -135,8 +134,8 @@ if __name__ == "__main__":
 		tmp_dir="data/tmp/train/")
 	
 	## 训练网络
-	rnn = GRU(DIMENSION,256)
+	rnn = GRU(66,256,66)
 	rnn.cuda()
 	print(rnn)
 
-	train_Model(rnn, train_dataloader, valid_dataloader,weight=(1,1))
+	train_Model(rnn, train_dataloader, valid_dataloader,weight=(1,0))

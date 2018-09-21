@@ -44,5 +44,5 @@ class MAE(nn.Module):
 		zero_num = torch.sum(1-mask)
 		L1   = nn.L1Loss()
 		loss = L1(y_predict*(1-mask),
-				  y_target *(1-mask)) *zero_num/(zero_num+one_num)
+				  y_target *(1-mask)) * (zero_num+one_num)/zero_num
 		return loss
